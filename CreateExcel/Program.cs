@@ -7,6 +7,10 @@ using Bogus;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Collections.Generic;
+using System.Data;
+using NPOI.XSSF.UserModel;
+using Newtonsoft.Json;
 
 namespace CreateExcel
 {
@@ -40,54 +44,8 @@ namespace CreateExcel
 
             var lists = faker.Generate(10);
 
-            IWorkbook hssfworkbook;
-
-            // InitializeWorkbook
-            hssfworkbook = new HSSFWorkbook();
-
-            ////Create a entry of DocumentSummaryInformation
-            //DocumentSummaryInformation dsi = PropertySetFactory.CreateDocumentSummaryInformation();
-            //dsi.Company = "NPOI Team";
-            //hssfworkbook.DocumentSummaryInformation = dsi;
-
-            ////Create a entry of SummaryInformation
-            //SummaryInformation si = PropertySetFactory.CreateSummaryInformation();
-            //si.Subject = "NPOI SDK Example";
-            //hssfworkbook.SummaryInformation = si;
-
-            ISheet sheet = hssfworkbook.CreateSheet(typeof(Model).Name);
-
-            var properties = typeof(Model).GetProperties();
-
-            //Header
-            var header = sheet.CreateRow(0);
-            for (var i = 0; i < properties.Length; i++)
-            {
-                var cell = header.CreateCell(i);
-                cell.SetCellValue(properties[i].Name);
-            }
-
-            //body
-
-            IRow sheetRow = null;
-
-            for (int i = 0; i < lists.Count; i++)
-            {
-                sheetRow = sheet.CreateRow(i + 1);
-
-                for (var j = 0; j < properties.Length; j++)
-                {
-                    ICell Row1 = sheetRow.CreateCell(j);
-                    //string cellvalue = FormatRow(properties[j], lists[i]);
-                    //Row1.SetCellValue(cellvalue);
-                    SetCell(hssfworkbook, Row1, properties[j], lists[i]);
-                }
-            }
-
-            FileStream file = new FileStream(@"test.xls", FileMode.Create);
-            hssfworkbook.Write(file);
-            file.Close();
-
+            WriteExcel_One(lists);
+            WriteExcel(lists);
             Console.WriteLine("Hello World!");
         }
 
@@ -129,6 +87,100 @@ namespace CreateExcel
                 case bool b: return b ? "True" : "False";
                 default: return Convert.ToString(value);
             }
+        }
+
+        static void WriteExcel_One(List<Model> list)
+        {
+            IWorkbook hssfworkbook;
+
+            // InitializeWorkbook
+            hssfworkbook = new HSSFWorkbook();
+
+            ////Create a entry of DocumentSummaryInformation
+            //DocumentSummaryInformation dsi = PropertySetFactory.CreateDocumentSummaryInformation();
+            //dsi.Company = "NPOI Team";
+            //hssfworkbook.DocumentSummaryInformation = dsi;
+
+            ////Create a entry of SummaryInformation
+            //SummaryInformation si = PropertySetFactory.CreateSummaryInformation();
+            //si.Subject = "NPOI SDK Example";
+            //hssfworkbook.SummaryInformation = si;
+
+            ISheet sheet = hssfworkbook.CreateSheet(typeof(Model).Name);
+
+            var properties = typeof(Model).GetProperties();
+
+            //Header
+            var header = sheet.CreateRow(0);
+            for (var i = 0; i < properties.Length; i++)
+            {
+                var cell = header.CreateCell(i);
+                cell.SetCellValue(properties[i].Name);
+            }
+
+            //body
+
+            IRow sheetRow = null;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                sheetRow = sheet.CreateRow(i + 1);
+
+                for (var j = 0; j < properties.Length; j++)
+                {
+                    ICell Row1 = sheetRow.CreateCell(j);
+                    //string cellvalue = FormatRow(properties[j], lists[i]);
+                    //Row1.SetCellValue(cellvalue);
+                    SetCell(hssfworkbook, Row1, properties[j], list[i]);
+                }
+            }
+
+            FileStream file = new FileStream(@"test.xls", FileMode.Create);
+            hssfworkbook.Write(file);
+            file.Close();
+        }
+
+        static void WriteExcel(List< Model> list)
+        {
+           
+            // Lets converts our object data to Datatable for a simplified logic.
+            // Datatable is most easy way to deal with complex datatypes for easy reading and formatting.
+
+            DataTable table = (DataTable)JsonConvert.DeserializeObject(JsonConvert.SerializeObject(list), (typeof(DataTable)));
+            var memoryStream = new MemoryStream();
+
+            using (var fs = new FileStream("Result.xlsx", FileMode.Create, FileAccess.Write))
+            {
+                IWorkbook workbook = new XSSFWorkbook();
+                ISheet excelSheet = workbook.CreateSheet("Sheet1");
+
+                List<string> columns = new List<string>();
+                IRow row = excelSheet.CreateRow(0);
+                int columnIndex = 0;
+
+                foreach (System.Data.DataColumn column in table.Columns)
+                {
+                    columns.Add(column.ColumnName);
+                    row.CreateCell(columnIndex).SetCellValue(column.ColumnName);
+                    columnIndex++;
+                }
+
+                int rowIndex = 1;
+                foreach (DataRow dsrow in table.Rows)
+                {
+                    row = excelSheet.CreateRow(rowIndex);
+                    int cellIndex = 0;
+                    foreach (String col in columns)
+                    {
+                        row.CreateCell(cellIndex).SetCellValue(dsrow[col].ToString());
+                        cellIndex++;
+                    }
+
+                    rowIndex++;
+                }
+                workbook.Write(fs);
+            }
+
         }
     }
 }
