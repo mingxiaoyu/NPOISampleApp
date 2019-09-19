@@ -17,6 +17,9 @@ namespace CreateExcel
         public DateTimeOffset Now { get; set; }
         public bool New { get; set; }
     }
+    /// <summary>
+    /// HSSF类，只支持2007以前的excel（文件扩展名为xls），而XSSH支持07以后的
+    /// </summary>
     class Program
     {
         static void Main(string[] args)
@@ -37,20 +40,20 @@ namespace CreateExcel
 
             var lists = faker.Generate(10);
 
-            HSSFWorkbook hssfworkbook;
+            IWorkbook hssfworkbook;
 
             // InitializeWorkbook
             hssfworkbook = new HSSFWorkbook();
 
-            //Create a entry of DocumentSummaryInformation
-            DocumentSummaryInformation dsi = PropertySetFactory.CreateDocumentSummaryInformation();
-            dsi.Company = "NPOI Team";
-            hssfworkbook.DocumentSummaryInformation = dsi;
+            ////Create a entry of DocumentSummaryInformation
+            //DocumentSummaryInformation dsi = PropertySetFactory.CreateDocumentSummaryInformation();
+            //dsi.Company = "NPOI Team";
+            //hssfworkbook.DocumentSummaryInformation = dsi;
 
-            //Create a entry of SummaryInformation
-            SummaryInformation si = PropertySetFactory.CreateSummaryInformation();
-            si.Subject = "NPOI SDK Example";
-            hssfworkbook.SummaryInformation = si;
+            ////Create a entry of SummaryInformation
+            //SummaryInformation si = PropertySetFactory.CreateSummaryInformation();
+            //si.Subject = "NPOI SDK Example";
+            //hssfworkbook.SummaryInformation = si;
 
             ISheet sheet = hssfworkbook.CreateSheet(typeof(Model).Name);
 
@@ -88,7 +91,7 @@ namespace CreateExcel
             Console.WriteLine("Hello World!");
         }
 
-        private static void SetCell(HSSFWorkbook hssfworkbook, ICell cell, PropertyInfo propertyInfo, Model model)
+        private static void SetCell(IWorkbook hssfworkbook, ICell cell, PropertyInfo propertyInfo, Model model)
         {
             ICellStyle cellStyle = hssfworkbook.CreateCellStyle();
             IDataFormat format = hssfworkbook.CreateDataFormat();
